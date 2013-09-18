@@ -9,18 +9,19 @@ zdata = []
 triangles = []
 
 #Open serial port
-port1 = Serial("/dev/tty.uart-EEFF4676258B1340", 9600)
+#port1 = Serial("/dev/tty.uart-EEFF4676258B1340", 9600)
 
 #Parse OBJ file
-with open("./Documents/GitHub/KickSat-AsteroidDemo/Asteroids/toutatis.obj") as f:
+with open("./Documents/GitHub/KickSat-AsteroidDemo/Asteroids/ida_m.obj") as f:
 	for line in f:
 		data = line.split()
-		if data[0] == 'v':
-			xdata.append(float(data[1]))
-			ydata.append(float(data[2]))
-			zdata.append(float(data[3]))
-		if data[0] == 'f':
-			triangles.append((int(data[1])-1, int(data[2])-1, int(data[3])-1))
+		if len(data):
+			if data[0] == 'v':
+				xdata.append(float(data[1]))
+				ydata.append(float(data[2]))
+				zdata.append(float(data[3]))
+			if data[0] == 'f':
+				triangles.append((int(data[1].split("//")[0])-1, int(data[2].split("//")[0])-1, int(data[3].split("//")[0])-1))
 
 #Convert virtex data to NumPy arrays
 Ax = array(xdata)
@@ -43,7 +44,8 @@ def anim():
 		yield
 
 def getAngle():
-	line = port1.readline()
-	return int(line)
+	#line = port1.readline()
+	#return int(line)
+	return 10
 
 anim()
