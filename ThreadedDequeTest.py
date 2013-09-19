@@ -1,68 +1,29 @@
 from math import *
 from numpy import *
-from mayavi.mlab import *
 from serial import *
+from collections import deque
+import multiprocessing
 
-#Data lists for parsing
-xdata = []
-ydata = []
-zdata = []
-triangles = []
-last_theta = pi
+#Global Variables
+#last_theta = pi
+buf = deque([0.0]*10, 10)
 
-#Open serial port
-port1 = Serial("/dev/cu.uart-EEFF4676258B1340", 9600)
+def readSerial():
+	last_theta = pi
 
-#Parse OBJ file
-with open("./Documents/GitHub/KickSat-AsteroidDemo/Asteroids/ida_m.obj") as f:
-	for line in f:
+	for line in Serial("/dev/cu.uart-EEFF4676258B1340", 9600):
 		data = line.split()
-		if len(data):
-			if data[0] == 'v':
-				xdata.append(float(data[1]))
-				ydata.append(float(data[2]))
-				zdata.append(float(data[3]))
-			if data[0] == 'f':
-				triangles.append((int(data[1].split("//")[0])-1, int(data[2].split("//")[0])-1, int(data[3].split("//")[0])-1))
+		print data
+		if len(data) == 3:
+			try:
+				B = array([float(data[0]), float(data[1]), float(data[1])])
+				theta = AngleSolver(B, pi)
+				print theta
+				buf.append(theta)
+			except:
+				print "Bad Data"
 
-#Convert virtex data to NumPy arrays
-Ax = array(xdata)
-Ay = array(ydata)
-Az = array(zdata)
-
-#Set up the figure with black background and white foreground
-fig = figure("AsteroidFig", (0, 0, 0), (1, 1, 1))
-
-#Draw the asteroid
-triangular_mesh(Ax, Ay, Az, triangles, color=(.58, .58, .58))
-
-@show
-@animate(delay=10)
-def anim():
-	f = gcf()
-	while 1:
-		view(azimuth=(180/pi)*getAngle())
-		f.scene.render()
-		yield
-
-def getAngle():
-	global last_theta
-	theta = last_theta
-
-	line = port1.readline()
-	print line
-	data = line.split()
-	if len(data) == 3:
-		try:
-			B = array([float(data[0]), float(data[1]), float(data[1])])
-			theta = AngleSolver(B, last_theta)
-			last_theta = theta
-		except:
-			print "Bad Data"
-
-	print theta
-	return theta
-
+#A 2-term Fourrier series fit to the B vector as a function of rotation angle 
 def MagFit(theta):
 
 	B = zeros(3)
@@ -91,6 +52,7 @@ def MagFit(theta):
 
 	return B
 
+#The derivative of the above function w.r.t. rotation angle
 def DMagFit(theta):
 
 	dB = zeros(3)
@@ -116,6 +78,7 @@ def DMagFit(theta):
 
 	return dB
 
+#Use Newton's method to solve for theta given B
 def AngleSolver(B, guess):
 	theta = guess
 
@@ -131,6 +94,7 @@ def AngleSolver(B, guess):
 
 		alpha = 1
 		for i in range(0,10):
+			print i
 			thetanew = theta + alpha*J/dJdth
 			Bg = MagFit(thetanew)
 			enew = B - Bg
@@ -142,4 +106,8 @@ def AngleSolver(B, guess):
 
 	return theta
 
-anim()
+#Start the serial port reading/processing thread
+serialReaderProcess = multiprocessing.Process(target=readSerial)
+serialReaderProcess.start()
+
+print "Process Started."

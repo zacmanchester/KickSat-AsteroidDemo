@@ -18,5 +18,5 @@ void loop() {
   Serial.print("\t");
   Serial.println(b.z);
   
-  delay(50);
+  delay(90);
 }

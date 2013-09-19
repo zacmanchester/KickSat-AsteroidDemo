@@ -64,7 +64,7 @@ def main():
   strPort = sys.argv[1];
 
   # plot parameters
-  analogData = AnalogData(500)
+  analogData = AnalogData(300)
   analogPlot = AnalogPlot(analogData)
 
   print 'plotting data...'
