@@ -44,7 +44,7 @@ class AnalogPlot:
     self.axline, = plt.plot(analogData.ax)
     self.ayline, = plt.plot(analogData.ay)
     self.azline, = plt.plot(analogData.az)
-    plt.ylim([-50, 50])
+    plt.ylim([-100, 100])
 
   # update plot
   def update(self, analogData):
@@ -64,7 +64,7 @@ def main():
   strPort = sys.argv[1];
 
   # plot parameters
-  analogData = AnalogData(100)
+  analogData = AnalogData(500)
   analogPlot = AnalogPlot(analogData)
 
   print 'plotting data...'
@@ -72,16 +72,15 @@ def main():
   # open serial port
   ser = serial.Serial(strPort, 9600)
   while True:
-    try:
       line = ser.readline()
-      data = [float(val) for val in line.split()]
-      #print data
-      if(len(data) == 3):
-        analogData.add(data)
-        analogPlot.update(analogData)
-    except KeyboardInterrupt:
-      print 'exiting'
-      break
+      try:
+        data = [float(val) for val in line.split()]
+        #print data
+        if(len(data) == 3):
+          analogData.add(data)
+          analogPlot.update(analogData)
+      except ValueError:
+        print "Bad Value"
   # close serial
   ser.flush()
   ser.close()
