@@ -48,7 +48,7 @@ def getAngle():
 	line = port1.readline()
 	data = line.split()
 	B = array([float(data[1]), float(data[2])])
-	theta = AngleSolver(B)
+	theta = (180/pi)*AngleSolver(B)
 	print theta
 	return theta
 
