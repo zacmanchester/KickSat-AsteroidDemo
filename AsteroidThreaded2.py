@@ -32,8 +32,8 @@ def readSerial():
 			#try:
 			B = array([float(data[0]), float(data[1]), float(data[1])])
 			guess = buf[-1] + (buf[-1] - buf[-2])
-			lb = buf[-1] - pi/8
-			ub = buf[-1] + pi/8
+			lb = guess - pi/18
+			ub = guess + pi/18
 			
 			res = AngleSolver(B, guess, lb, ub)
 
