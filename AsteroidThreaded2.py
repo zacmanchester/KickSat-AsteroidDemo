@@ -8,7 +8,7 @@ import threading
 
 #Global Variables
 #last_theta = pi
-buf = deque([0.0]*10, 10)
+buf = deque([pi]*10, 10)
 
 #Data lists for parsing
 xdata = []
@@ -31,9 +31,9 @@ def readSerial():
 		if len(data) == 3:
 			#try:
 			B = array([float(data[0]), float(data[1]), float(data[1])])
-			guess = buf[-1] + (buf[-1] - buf[-2])
-			lb = guess - pi/18
-			ub = guess + pi/18
+			guess = buf[-1] + .2*(buf[-1]-buf[-6])
+			lb = guess - pi/4
+			ub = guess + pi/4
 			
 			res = AngleSolver(B, guess, lb, ub)
 
@@ -46,55 +46,35 @@ def MagFit(theta):
 
 	B = zeros(3)
 
-	ax0 = -7.397
-	ax1 = -8.329
-	bx1 =  46.7
-	ax2 = -2.102
-	bx2 = -10.77
+	ax0 =  19.04
+	ax1 = -37.98
+	bx1 = -0.4392
+	ax2 = -0.4125
+	bx2 = -8.412
+	ax3 =  1.689
+	bx3 =  0.5891
 
-	ay0 =  26.04
-	ay1 = -23.6
-	by1 = -10.09
-	ay2 =  7.748
-	by2 = -0.7238
+	ay0 =  13.87
+	ay1 =  4.463
+	by1 = -19.73
+	ay2 =  4.672
+	by2 =  1.369
+	ay3 = -0.7784
+	by3 =  0.889
 
-	az0 =  8.147
-	az1 = -9.776
-	bz1 =  8.226
-	az2 = -0.2044
-	bz2 = -2.14
+	az0 = -4.907
+	az1 = -8.234
+	bz1 =  0.601
+	az2 = -0.0403
+	bz2 = -1.91
+	az3 =  0.442
+	bz3 =  0.1858
 
-	B[0] = ax0 + ax1*cos(theta) + bx1*sin(theta) + ax2*cos(2*theta) + bx2*sin(2*theta)
-	B[1] = ay0 + ay1*cos(theta) + by1*sin(theta) + ay2*cos(2*theta) + by2*sin(2*theta)
-	B[2] = az0 + az1*cos(theta) + bz1*sin(theta) + az2*cos(2*theta) + bz2*sin(2*theta)
+	B[0] = ax0 + ax1*cos(theta) + bx1*sin(theta) + ax2*cos(2*theta) + bx2*sin(2*theta) + ax3*cos(3*theta) + bx3*sin(3*theta)
+	B[1] = ay0 + ay1*cos(theta) + by1*sin(theta) + ay2*cos(2*theta) + by2*sin(2*theta) + ay3*cos(3*theta) + by3*sin(3*theta)
+	B[2] = az0 + az1*cos(theta) + bz1*sin(theta) + az2*cos(2*theta) + bz2*sin(2*theta) + az3*cos(3*theta) + bz3*sin(3*theta)
 
 	return B
-
-#The derivative of the above function w.r.t. rotation angle
-def DMagFit(theta):
-
-	dB = zeros(3)
-
-	ax1 = -8.329
-	bx1 =  46.7
-	ax2 = -2.102
-	bx2 = -10.77
-
-	ay1 = -23.6
-	by1 = -10.09
-	ay2 =  7.748
-	by2 = -0.7238
-
-	az1 = -9.776
-	bz1 =  8.226
-	az2 = -0.2044
-	bz2 = -2.14
-
-	dB[0] = -ax1*sin(theta) + bx1*cos(theta) - 2*ax2*sin(2*theta) + 2*bx2*cos(2*theta)	
-	dB[1] = -ay1*sin(theta) + by1*cos(theta) - 2*ay2*sin(2*theta) + 2*by2*cos(2*theta)
-	dB[2] = -az1*sin(theta) + bz1*cos(theta) - 2*az2*sin(2*theta) + 2*bz2*cos(2*theta)
-
-	return dB
 
 #Use Newton's method to solve for theta given B
 def AngleSolver(B, guess, lb, ub):

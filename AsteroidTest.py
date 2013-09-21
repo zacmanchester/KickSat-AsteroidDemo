@@ -40,16 +40,17 @@ triangular_mesh(Ax, Ay, Az, triangles, color=(.58, .58, .58))
 def anim():
 	f = gcf()
 	theta = 0
-	while 1:
-		if theta < 360:
-			view(azimuth=theta)
-			theta = theta+2
-		else:
-			theta = 0
-			view(azimuth=theta)
+	view(azimuth=theta)
+	#while 1:
+	#	if theta < 360:
+	#		view(azimuth=theta)
+	#		theta = theta+2
+	#	else:
+	#		theta = 0
+	#		view(azimuth=theta)
 
 		#f.scene.camera.azimuth(getAngle())
-		f.scene.render()
-		yield
+	f.scene.render()
+	yield
 
 anim()
