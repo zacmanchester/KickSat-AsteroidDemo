@@ -3,14 +3,15 @@ from numpy import *
 from mayavi.mlab import *
 from serial import *
 
+#Image Size
+size_x = 400
+size_y = 300
+
 #Data lists for parsing
 xdata = []
 ydata = []
 zdata = []
 triangles = []
-
-#Open serial port
-#port1 = Serial("/dev/cu.uart-EEFF4676258B1340", 9600)
 
 #Parse OBJ file
 with open("./Asteroids/ida_m.obj") as f:
@@ -30,7 +31,7 @@ Ay = array(ydata)
 Az = array(zdata)
 
 #Set up the figure with black background and white foreground
-fig = figure("AsteroidFig", (0, 0, 0), (1, 1, 1), size=(560,448))
+fig = figure("AsteroidFig", (0, 0, 0), (1, 1, 1), size=(size_x, size_y+28))
 
 #Draw the asteroid
 triangular_mesh(Ax, Ay, Az, triangles, color=(.58, .58, .58))
@@ -39,15 +40,11 @@ triangular_mesh(Ax, Ay, Az, triangles, color=(.58, .58, .58))
 @animate(delay=50)
 def anim():
 	f = gcf()
-	theta = -3
-	while 1:
-		if theta < 360:
-			view(azimuth=theta)
-			theta = theta+3
-		else:
-			theta = 0
-			view(azimuth=theta)
-		savefig("./Frames/Frame"+str(theta)+".png", figure=fig, magnification=1)
+	theta = 0
+	while theta < 360:
+		view(azimuth=theta)
+		savefig("./Frames_"+str(size_x)+"/Frame"+str(theta)+".png", figure=fig, magnification=1)
+		theta = theta+3
 		f.scene.render()
 
 		yield

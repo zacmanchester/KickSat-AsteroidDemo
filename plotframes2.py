@@ -1,10 +1,14 @@
 import matplotlib
+
 matplotlib.use('TkAgg') # do this before importing pylab
+matplotlib.rcParams['toolbar'] = 'None'
+
 import matplotlib.pyplot as plt
 import scipy.misc as misc
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
+plt.axis('off')
 
 dtheta = 3
 frames = []
