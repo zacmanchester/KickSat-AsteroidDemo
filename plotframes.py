@@ -1,21 +1,25 @@
 import matplotlib
+
 matplotlib.use('TkAgg') # do this before importing pylab
+matplotlib.rcParams['toolbar'] = 'None'
+
 import matplotlib.pyplot as plt
-import Image
+import scipy.misc as misc
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
+plt.axis('off')
 
 dtheta = 3
-filenames = []
+frames = []
 for k in range(0, 360, dtheta):
-    filenames.append('./Frames/Frame'+str(k)+'.png')
+    filename = './Frames_400/Frame'+str(k)+'.png'
+    frames.append(misc.imread(filename))
 
 def animate():
-    im=plt.imshow(Image.open(filenames[0]))
-    for filename in filenames[1:]:
-        image=Image.open(filename)
-        im.set_data(image)
+    im=plt.imshow(frames[0])
+    for frame in frames[1:]:
+        im.set_data(frame)
         fig.canvas.draw() 
 
 win = fig.canvas.manager.window
