@@ -4,8 +4,8 @@ from mayavi.mlab import *
 from serial import *
 
 #Image Size
-size_x = 400
-size_y = 300
+size_x = 800
+size_y = 600
 
 #Data lists for parsing
 xdata = []

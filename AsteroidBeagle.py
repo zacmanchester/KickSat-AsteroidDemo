@@ -82,9 +82,6 @@ def AngleSolver(B, guess, lb, ub):
 
 	return theta
 
-
-
-
 #Start the serial port reading/processing thread
 serialReaderThread = threading.Thread(target=readSerial)
 serialReaderThread.start()
