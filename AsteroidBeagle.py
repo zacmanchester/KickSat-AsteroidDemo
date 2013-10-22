@@ -1,6 +1,6 @@
 from math import *
 from numpy import *
-from scipy.optimize import minimize_scalar
+from scipy.optimize import fminbound
 from serial import *
 from collections import deque
 import pygame
@@ -11,11 +11,12 @@ import threading
 #Global Variables
 dtheta = 3 #Angle (in degrees) between frames
 Bias = array([0.0, 0.0, 0.0])
-buf = deque([0.0]*10, 10)
+lastAngle = 0
 
 #Initialize the display
 pygame.init()
 screen=pygame.display.set_mode((640,480),pygame.FULLSCREEN,16)
+#screen=pygame.display.set_mode((640,480),0,16)
 pygame.display.set_caption("KickSat Asteroid Tracker")
 
 #Read all the frames from their PNG files
@@ -55,44 +56,41 @@ def MagFit(theta):
 	return B
 
 #Solve for theta given B
-def AngleSolver(Bmeas, guess, lb, ub):
+def AngleSolver(B, guess, lb, ub):
 
 	def cost(theta):
 		Bg = MagFit(theta)
 		e = B - Bg
 		return e.dot(e)
 
-	theta = minimize_scalar(cost, bounds=(lb, ub), method='bounded')
+	theta = fminbound(cost, lb, ub)
 
 	return theta
 
-def readSerial():
-	for line in Serial("/dev/cu.uart-EEFF4676258B1340", 9600):
+def getAngle():
+	while True:
+		line = port.readline()
+		#print(line)
 		data = line.split()
 		if len(data) == 3:
 			try:
 				B = array([float(data[0]), float(data[1]), float(data[1])])
-				guess = buf[-1] + .2*(buf[-1]-buf[-6])
-				lb = guess - pi/4
-				ub = guess + pi/4
-				
-				res = AngleSolver(B, guess, lb, ub)
-
-				if res < 0
+				lb = lastAngle - pi/6
+				ub = lastAngle + pi/6
+			
+				res = AngleSolver(B, lastAngle, lb, ub)
+				if res < 0:
 					res = res + 2*pi
-				if res > 2*pi
+				if res > 2*pi:
 					res = res - 2*pi
-
-				buf.append(res.x)
+			
+				#print(str(res))
+				return res
 			except:
 				print "Bad Data"
 
-#Kick off the serial reader / angle solver thread
-serialReaderThread = threading.Thread(target=readSerial)
-serialReaderThread.start()
-
 #Open Serial Port
-port = Serial("/dev/cu.uart-0CFF4695F70D3A3F", 9600)
+port = Serial("/dev/ttyO1", 9600)
 
 #Wait to make sure we get some good data in the buffer
 port.readline()
@@ -109,17 +107,14 @@ Bmeas = array([float(data[0]), float(data[1]), float(data[1])])
 Bpred = MagFit(0.0)
 Bias = Bpred - Bmeas
 
-#Start the serial port reading/processing thread
-serialReaderThread = threading.Thread(target=readSerial)
-serialReaderThread.start()
-
 #Display the first frame
 screen.blit(frames[0],(0,0)) 
 pygame.display.update()
 
 #The animation loop
-while true:
-	index = round((60/pi)*buf.pop())
-	screen.blit(frames[index])
+while True:
+	angle = getAngle()
+	index = int(round((60/pi)*angle))%120
+	screen.blit(frames[index],(0,0))
 	pygame.display.update()
-	pygame.time.wait(80)
+	lastAngle = angle
