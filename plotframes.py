@@ -1,27 +1,20 @@
-import matplotlib
-
-matplotlib.use('TkAgg') # do this before importing pylab
-matplotlib.rcParams['toolbar'] = 'None'
-
-import matplotlib.pyplot as plt
-import scipy.misc as misc
-
-fig = plt.figure()
-ax = fig.add_subplot(111)
-plt.axis('off')
+import pygame
+from pygame.locals import *
+from sys import exit
+ 
+pygame.init()
+screen=pygame.display.set_mode((640,480),pygame.FULLSCREEN,16)
+pygame.display.set_caption("KickSat Asteroid Tracker")
 
 dtheta = 3
 frames = []
 for k in range(0, 360, dtheta):
-    filename = './Frames_400/Frame'+str(k)+'.png'
-    frames.append(misc.imread(filename))
+    filename = './Frames_640/Frame'+str(k)+'.png'
+    frames.append(pygame.image.load(filename).convert())
 
-def animate():
-    im=plt.imshow(frames[0])
-    for frame in frames[1:]:
-        im.set_data(frame)
-        fig.canvas.draw() 
+for frame in frames:
+    screen.blit(frame,(0,0))
+    pygame.display.update()
+    
+exit()
 
-win = fig.canvas.manager.window
-fig.canvas.manager.window.after(100, animate)
-plt.show()
