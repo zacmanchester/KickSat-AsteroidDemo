@@ -1,8 +1,7 @@
+import math
 import numpy as np
-from math import sin,cos,pi
+import scipy.optimize as so
 import numpy.matrixlib as nm
-from scipy.optimize import fminbound
-from scipy.optimize import minimize_scalar
 
 
 mtxlist = ( None, None
@@ -21,7 +20,7 @@ mtxlist = ( None, None
 
 def buildvec(theta, order):
   lclOrder = order - 1
-  vec = [1.0, cos(theta), sin(theta)]
+  vec = [1.0, math.cos(theta), math.sin(theta)]
   while lclOrder > 0:
     ###      cos(nT+T) =                    ,   sin(nT+T) =
     ###      cos(nT)*cos(T) - sin(nT)*sin(T),   cos(nT)*sin(T) + sin(nT)*cos(T)
@@ -63,9 +62,9 @@ def AngleSolver(B, guess, lb, ub, order=2, useFmin=True, tol=1e-9):
     e = B - MagFit(theta,order=order)
     return e.dot(e)
 
-  if useFmin: return fminbound(cost, lb, ub, xtol=tol)
+  if useFmin: return so.fminbound(cost, lb, ub, xtol=tol)
 
-  return minimize_scalar(cost, bounds=(lb, ub,), method='bounded', tol=tol).x
+  return so.minimize_scalar(cost, bounds=(lb, ub,), method='bounded', tol=tol).x
 
 
 
@@ -100,9 +99,9 @@ if __name__=="__main__":
     az3 =  0.442
     bz3 =  0.1858
 
-    B[0] = ax0 + ax1*cos(theta) + bx1*sin(theta) + ax2*cos(2*theta) + bx2*sin(2*theta) + ax3*cos(3*theta) + bx3*sin(3*theta)
-    B[1] = ay0 + ay1*cos(theta) + by1*sin(theta) + ay2*cos(2*theta) + by2*sin(2*theta) + ay3*cos(3*theta) + by3*sin(3*theta)
-    B[2] = az0 + az1*cos(theta) + bz1*sin(theta) + az2*cos(2*theta) + bz2*sin(2*theta) + az3*cos(3*theta) + bz3*sin(3*theta)
+    B[0] = ax0 + ax1*math.cos(theta) + bx1*math.sin(theta) + ax2*math.cos(2*theta) + bx2*math.sin(2*theta) + ax3*math.cos(3*theta) + bx3*math.sin(3*theta)
+    B[1] = ay0 + ay1*math.cos(theta) + by1*math.sin(theta) + ay2*math.cos(2*theta) + by2*math.sin(2*theta) + ay3*math.cos(3*theta) + by3*math.sin(3*theta)
+    B[2] = az0 + az1*math.cos(theta) + bz1*math.sin(theta) + az2*math.cos(2*theta) + bz2*math.sin(2*theta) + az3*math.cos(3*theta) + bz3*math.sin(3*theta)
 
     return B
 
@@ -129,9 +128,9 @@ if __name__=="__main__":
     az2 = -1.838
     bz2 = -0.6224
 
-    B[0] = ax0 + ax1*cos(theta) + bx1*sin(theta) + ax2*cos(2*theta) + bx2*sin(2*theta)
-    B[1] = ay0 + ay1*cos(theta) + by1*sin(theta) + ay2*cos(2*theta) + by2*sin(2*theta)
-    B[2] = az0 + az1*cos(theta) + bz1*sin(theta) + az2*cos(2*theta) + bz2*sin(2*theta)
+    B[0] = ax0 + ax1*math.cos(theta) + bx1*math.sin(theta) + ax2*math.cos(2*theta) + bx2*math.sin(2*theta)
+    B[1] = ay0 + ay1*math.cos(theta) + by1*math.sin(theta) + ay2*math.cos(2*theta) + by2*math.sin(2*theta)
+    B[2] = az0 + az1*math.cos(theta) + bz1*math.sin(theta) + az2*math.cos(2*theta) + bz2*math.sin(2*theta)
 
     return B
 
@@ -140,7 +139,7 @@ if __name__=="__main__":
   err2 = []
   err3 = []
   for i in range(3000):
-    theta = i * pi / 600
+    theta = i * math.pi / 600
     err2 += [ [ [abs(v) for v in MagFit(theta) - OldMagFitOrder2(theta)], theta, 2] ]
     err3 += [ [ [abs(v) for v in MagFit(theta,order=3) - OldMagFitOrder3(theta)], theta, 3] ]
 
@@ -160,9 +159,9 @@ if __name__=="__main__":
   errCount = 0
   for order in (2,3):
     for i in range(3000):
-      theta = i * pi / 500
+      theta = i * math.pi / 500
       B = MagFit(theta,order)
-      thetaSolve = AngleSolver(B, theta-pi/(i+1), theta-pi/4, theta+pi/4, order=order, useFmin=(order==2))
+      thetaSolve = AngleSolver(B, theta-math.pi/(i+1), theta-math.pi/4, theta+math.pi/4, order=order, useFmin=(order==2))
       if abs(thetaSolve-theta) <= 1e-6: continue
       print( (order,i,theta,thetaSolve,thetaSolve-theta,) )
       errCount += 1
