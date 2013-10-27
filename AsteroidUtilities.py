@@ -148,9 +148,7 @@ if __name__=="__main__":
   errCount = 0
   for errs in [err2,err3]:
     errs.sort()
-    z3 = [0.,0.,0.]
     for err in errs:
-      if err[0]==z3: continue
       if max(err[0]) <= 1e-13: continue
       print( dict(zip('errs theta order'.split(),err)) )
       errCount += 1
