@@ -1,6 +1,8 @@
-from math import sin,cos,pi
 import numpy as np
+from math import sin,cos,pi
 import numpy.matrixlib as nm
+from scipy.optimize import fminbound
+from scipy.optimize import minimize_scalar
 
 
 mtxlist = ( None, None
@@ -53,6 +55,18 @@ def getVertsTris(filepath):
          , np.array(zdata, dtype=np.float)
          , triangles
          , )
+
+
+def AngleSolver(B, guess, lb, ub, order=2, useFmin=True, tol=1e-9):
+
+  def cost(theta):
+    e = B - MagFit(theta,order=order)
+    return e.dot(e)
+
+  if useFmin: return fminbound(cost, lb, ub, xtol=tol)
+
+  return minimize_scalar(cost, bounds=(lb, ub,), method='bounded', tol=tol).x
+
 
 
 ### Test code
@@ -122,10 +136,44 @@ if __name__=="__main__":
     return B
 
 
-  theta = pi / 2.0
-  print MagFit(theta) - OldMagFitOrder2(theta)
-  print MagFit(theta, order=3) - OldMagFitOrder3(theta)
+  ### Compare new MagFit routine against older MagFit routines
+  err2 = []
+  err3 = []
+  for i in range(3000):
+    theta = i * pi / 600
+    err2 += [ [ [abs(v) for v in MagFit(theta) - OldMagFitOrder2(theta)], theta, 2] ]
+    err3 += [ [ [abs(v) for v in MagFit(theta,order=3) - OldMagFitOrder3(theta)], theta, 3] ]
 
+  print( "Testing Magfits ..." )
+  errCount = 0
+  for errs in [err2,err3]:
+    errs.sort()
+    z3 = [0.,0.,0.]
+    for err in errs:
+      if err[0]==z3: continue
+      if max(err[0]) <= 1e-13: continue
+      print( dict(zip('errs theta order'.split(),err)) )
+      errCount += 1
+
+  if errCount==0: print( "  No errors > 1E-13 between old and new MagFits" )
+
+  ### Compare input and output thetas
+  print( "Testing AngleSolver ..." )
+  errCount = 0
+  for order in (2,3):
+    for i in range(3000):
+      theta = i * pi / 500
+      B = MagFit(theta,order)
+      thetaSolve = AngleSolver(B, theta-pi/(i+1), theta-pi/4, theta+pi/4, order=order, useFmin=(order==2))
+      if abs(thetaSolve-theta) <= 1e-6: continue
+      print( (order,i,theta,thetaSolve,thetaSolve-theta,) )
+      errCount += 1
+
+  if errCount==0: print( "  No errors > 1E-6 from AngleSolver" )
+
+  ### Get Ida shape from file, print out some pieces of it
   import os
+  print( "Testing OBJ reader ..." )
   Ax,Ay,Az,triangles = getVertsTris(os.path.join('Asteroids','ida_m.obj'))
   print( (Ax,Ay,Az,triangles[-5:],) )
+
