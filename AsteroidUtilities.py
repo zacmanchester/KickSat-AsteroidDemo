@@ -3,24 +3,31 @@ import numpy as np
 import scipy.optimize as so
 import numpy.matrixlib as nm
 
-### Tuple of matrices of Fourier fit coefficents
-### Each principal axis' (PA's) coefficients are on one line in this file
-### Note .T (transpose) at end of each so PA's coefs will be a column
+
+########################################################################
+### Module-local tuple of matrices of Fourier fit coefficents
+### - Index within tuple is order of matrix
+### - Each principal axis' (PA's) coefficients are on one line in this file
+### - Note .T (transpose) at end of each so PA's coefs will be a column
 
 mtxlist = ( None, None
+
 ### 2-term Fourier fit:       a0        a1     b1      a2      b2
           , nm.matrix( [ [-15.94,   -7.522, 48.97, -5.918, -3.235 ]  ### B[0]
                        , [  2.484, -22.72,  -9.989, 2.358, -4.198 ]  ### B[1]
                        , [ 34.93,   -2.168, 10.02, -1.838, -0.6224]  ### B[2]
                        ] ).T
+
 ### 3-term Fourier fit:        a0      a1       b1       a2    b2       a3       b3
           , nm.matrix( [ [  19.04, -37.98,   -0.4392, -0.4125, -8.412,  1.689,  0.5891]  ### B[0]
                        , [  13.87,   4.463, -19.73,    4.672,   1.369, -0.7784, 0.889 ]  ### B[1]
                        , [  -4.907, -8.234,   0.601,  -0.0403, -1.91,   0.442,  0.1858]  ### B[2]
                        ] ).T
+
           , )
 
 
+########################################################################
 def buildvec(theta, order):
   """
 Build row vector of Fourier cos(n*Theta) and sin(n*Theta) terms to be
@@ -41,6 +48,7 @@ multiplied by coefficents in mtxlist tuple above
   return np.array(vec)
 
 
+########################################################################
 def MagFit(theta,order=2):
   """
 Build row vector of Fourier terms per chosen order from theta,
@@ -50,6 +58,7 @@ matrix of chosen order.
   return (buildvec(theta,order) * mtxlist[order]).getA1()
 
 
+########################################################################
 def AngleSolver(B, guess, lb, ub, order=2, useFmin=True, tol=1e-9):
   """
 Solve for theta to fit row vector B input to MagFit(theta)
@@ -72,15 +81,22 @@ Arguments:
   tol      tolerance
 """
 
+  ######################################################################
   def cost(theta):
+    """Cost function to be minimized by AngleSolver via varying theta;
+       returns distance betwween input 3-vectors B and MagFit(theta)."""
     e = B - MagFit(theta,order=order)
     return e.dot(e)
 
+  ### Use fminbound if useFmin is True (default) ...
   if useFmin: return so.fminbound(cost, lb, ub, xtol=tol)
+
+  ### ... else use functionally identical minimize_scalar(...,method='bounded')
 
   return so.minimize_scalar(cost, bounds=(lb, ub,), method='bounded', tol=tol).x
 
 
+########################################################################
 def getVertsTris(filepath):
   """
 Read shape from file in ASCII OBJ format
@@ -111,7 +127,7 @@ Returns (Ax,Ay,Az,triangles,) tuple
          , )
 
 
-
+########################################################################
 ### Test code
 if __name__=="__main__":
   ### testing
