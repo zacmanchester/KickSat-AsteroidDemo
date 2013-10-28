@@ -3,24 +3,36 @@ import numpy as np
 import scipy.optimize as so
 import numpy.matrixlib as nm
 
+### Tuple of matrices of Fourier fit coefficents
+### Each principal axis' (PA's) coefficients are on one line in this file
+### Note .T (transpose) at end of each so PA's coefs will be a column
 
 mtxlist = ( None, None
 ### 2-term Fourier fit:       a0        a1     b1      a2      b2
-          , nm.matrix( [ [-15.94,   -7.522, 48.97, -5.918, -3.235 ]
-                       , [  2.484, -22.72,  -9.989, 2.358, -4.198 ]
-                       , [ 34.93,   -2.168, 10.02, -1.838, -0.6224]
+          , nm.matrix( [ [-15.94,   -7.522, 48.97, -5.918, -3.235 ]  ### B[0]
+                       , [  2.484, -22.72,  -9.989, 2.358, -4.198 ]  ### B[1]
+                       , [ 34.93,   -2.168, 10.02, -1.838, -0.6224]  ### B[2]
                        ] ).T
 ### 3-term Fourier fit:        a0      a1       b1       a2    b2       a3       b3
-          , nm.matrix( [ [  19.04, -37.98,   -0.4392, -0.4125, -8.412,  1.689,  0.5891 ]
-                       , [  13.87,   4.463, -19.73,    4.672,   1.369, -0.7784, 0.889 ]
-                       , [  -4.907, -8.234,   0.601,  -0.0403, -1.91,   0.442,   0.1858]
+          , nm.matrix( [ [  19.04, -37.98,   -0.4392, -0.4125, -8.412,  1.689,  0.5891]  ### B[0]
+                       , [  13.87,   4.463, -19.73,    4.672,   1.369, -0.7784, 0.889 ]  ### B[1]
+                       , [  -4.907, -8.234,   0.601,  -0.0403, -1.91,   0.442,  0.1858]  ### B[2]
                        ] ).T
           , )
 
 
 def buildvec(theta, order):
-  lclOrder = order - 1
+  """
+Build row vector of Fourier cos(n*Theta) and sin(n*Theta) terms to be
+multiplied by coefficents in mtxlist tuple above
+"""
+  ### Order 1:
+  ###   [cos(0*theta), cos(1*theta), sin(1*theta)]
+  ###   - exclude sin(0*theta) (=0)
   vec = [1.0, math.cos(theta), math.sin(theta)]
+
+  ### Append one cosine and sine term pair per remaining order
+  lclOrder = order - 1
   while lclOrder > 0:
     ###      cos(nT+T) =                    ,   sin(nT+T) =
     ###      cos(nT)*cos(T) - sin(nT)*sin(T),   cos(nT)*sin(T) + sin(nT)*cos(T)
@@ -30,10 +42,53 @@ def buildvec(theta, order):
 
 
 def MagFit(theta,order=2):
+  """
+Build row vector of Fourier terms per chosen order from theta,
+return row vector of dot products of that with each column of
+matrix of chosen order.
+"""
   return (buildvec(theta,order) * mtxlist[order]).getA1()
 
 
+def AngleSolver(B, guess, lb, ub, order=2, useFmin=True, tol=1e-9):
+  """
+Solve for theta to fit row vector B input to MagFit(theta)
+
+Uses scipy.optimize.fminbound(...) if useFmin is True; else use
+.minimize_scalar(...,method='bounded')
+*** N.B. the former, fminbound, is a wrapper for the latter
+
+Return:
+
+  theta that minimizes |B - MagFit(theta,order)| (magnitude)
+
+Arguments:
+
+  B        row vector to fit with theta via MagFit(theta)
+  guess    ignored
+  lb,ub    lower and upper bounds, respectively
+  order    which mtxlist[order] matrix to use
+  useFmin  True to use fminbound
+  tol      tolerance
+"""
+
+  def cost(theta):
+    e = B - MagFit(theta,order=order)
+    return e.dot(e)
+
+  if useFmin: return so.fminbound(cost, lb, ub, xtol=tol)
+
+  return so.minimize_scalar(cost, bounds=(lb, ub,), method='bounded', tol=tol).x
+
+
 def getVertsTris(filepath):
+  """
+Read shape from file in ASCII OBJ format
+- parses v and f lines only
+- ignores normal and texture vertices
+
+Returns (Ax,Ay,Az,triangles,) tuple
+"""
   xdata = []
   ydata = []
   zdata = []
@@ -56,22 +111,12 @@ def getVertsTris(filepath):
          , )
 
 
-def AngleSolver(B, guess, lb, ub, order=2, useFmin=True, tol=1e-9):
-
-  def cost(theta):
-    e = B - MagFit(theta,order=order)
-    return e.dot(e)
-
-  if useFmin: return so.fminbound(cost, lb, ub, xtol=tol)
-
-  return so.minimize_scalar(cost, bounds=(lb, ub,), method='bounded', tol=tol).x
-
-
 
 ### Test code
 if __name__=="__main__":
   ### testing
   def OldMagFitOrder3(theta):
+    """Copied from github.com/zacinaction ca. late Oct, 2013"""
 
     B = np.zeros(3)
 
@@ -107,6 +152,7 @@ if __name__=="__main__":
 
 
   def OldMagFitOrder2(theta):
+    """Copied from github.com/zacinaction ca. late Oct, 2013"""
 
     B = np.zeros(3)
 
@@ -135,7 +181,7 @@ if __name__=="__main__":
     return B
 
 
-  ### Compare new MagFit routine against older MagFit routines
+  ### Compare new MagFit routine against 2013-Oct MagFit routines
   err2 = []
   err3 = []
   for i in range(3000):
@@ -161,7 +207,7 @@ if __name__=="__main__":
     for i in range(3000):
       theta = i * math.pi / 500
       B = MagFit(theta,order)
-      thetaSolve = AngleSolver(B, theta-math.pi/(i+1), theta-math.pi/4, theta+math.pi/4, order=order, useFmin=(order==2))
+      thetaSolve = AngleSolver(B, None, theta-math.pi/4, theta+math.pi/4, order=order, useFmin=(order==2))
       if abs(thetaSolve-theta) <= 1e-6: continue
       print( (order,i,theta,thetaSolve,thetaSolve-theta,) )
       errCount += 1
