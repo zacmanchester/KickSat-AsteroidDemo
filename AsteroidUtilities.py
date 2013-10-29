@@ -31,21 +31,31 @@ mtxlist = ( None, None
 def buildvec(theta, order):
   """
 Build row vector of Fourier cos(n*Theta) and sin(n*Theta) terms to be
-multiplied by coefficents in mtxlist tuple above
+multiplied by coefficents in mtxlist tuple above;
+
+Argument theta may be a list, tuple or np.ndarray
 """
+  ### Force theta into np.ndarray where .shape = (N,1,)
+  lclTheta = np.array(theta)
+  shp = lclTheta.shape
+  if shp:
+    lclTheta = lclTheta.reshape((-1,1,))
+  else:
+    lclTheta = np.array([theta]).reshape((-1,1,))
+
   ### Order 1:
   ###   [cos(0*theta), cos(1*theta), sin(1*theta)]
   ###   - exclude sin(0*theta) (=0)
-  vec = [1.0, math.cos(theta), math.sin(theta)]
+  vec = np.hstack([np.ones(lclTheta.size).reshape((-1,1,)), np.cos(lclTheta), np.sin(lclTheta)])
 
   ### Append one cosine and sine term pair per remaining order
   lclOrder = order - 1
   while lclOrder > 0:
-    ###      cos(nT+T) =                    ,   sin(nT+T) =
-    ###      cos(nT)*cos(T) - sin(nT)*sin(T),   cos(nT)*sin(T) + sin(nT)*cos(T)
-    vec += [ vec[-2]*vec[1] - vec[-1]*vec[2],   vec[-1]*vec[1] + vec[-2]*vec[2] ]
+    ###                   cos(nT+T) =                            ,   sin(nT+T) =
+    ###                   cos(  nT)   *cos(  T)   - sin(  nT) *sin(  T),   cos(  nT)*sin(     T)   + sin(  nT)   *cos(  T)
+    vec = np.hstack([vec, vec[:,-2:-1]*vec[:,1:2] - vec[:,-1:]*vec[:,2:3],   vec[:,-1:]*vec[:,1:2] + vec[:,-2:-1]*vec[:,2:3]])
     lclOrder -= 1
-  return np.array(vec)
+  return vec
 
 
 ########################################################################
@@ -54,8 +64,12 @@ def MagFit(theta,order=2):
 Build row vector of Fourier terms per chosen order from theta,
 return row vector of dot products of that with each column of
 matrix of chosen order.
+
+Argument theta may be a list, tuple or np.ndarray
 """
-  return (buildvec(theta,order) * mtxlist[order]).getA1()
+  rtn = buildvec(theta,order) * mtxlist[order]
+  if np.array(theta).shape: return rtn
+  return rtn.getA1()
 
 
 ########################################################################
@@ -128,11 +142,46 @@ Returns (Ax,Ay,Az,triangles,) tuple
 
 
 ########################################################################
+def FourierFit(filename,order=2,returnMatrixOnly=True):
+  """Open file, read columns:  theta (optional); Bx, By, Bz
+
+     Calculate Fourier coefficients via least-squares; return matrix of
+     coefficients or full np.linalg.lstsq() return value
+"""
+  rawdata = np.array([ [float(v) for v in line.strip().split()] for line in open(filename,"rb") if line.strip()])
+  shp = rawdata.shape
+
+  if shp[1] == 4:
+    ### Extract thetas from first column
+    thetas = rawdata[:,0:1]
+
+  elif shp[1] == 3:
+    ### assume first and last lines are theta = zero and two PI
+    thetas = math.pi * 2 * np.arange(shp[0], dtype=np.float) / shp[0]
+
+  ### Build cos(nT), sin(nT) terms, .shape = (N,2*order+1)
+  thetaVecs = buildvec(thetas,order=order)
+
+  ### Extract mag readings, .shape = (N,3)
+  ys = rawdata[:,shp[1]-3:]
+
+  ### Fit the data using least squares
+  result = np.linalg.lstsq(thetaVecs, ys)
+
+  ### Return matrix, ...
+  if returnMatrixOnly: return np.matrixlib.matrix(result[0])
+
+  ### ... or full .lstsq result
+  return result
+
+
+########################################################################
 ### Test code
 if __name__=="__main__":
   ### testing
   def OldMagFitOrder3(theta):
-    """Copied from github.com/zacinaction ca. late Oct, 2013"""
+    """Copied from github.com/zacinaction ca. late Oct, 2013
+       N.B. this can only take a scalar theta, unlike MagFit above"""
 
     B = np.zeros(3)
 
@@ -168,7 +217,8 @@ if __name__=="__main__":
 
 
   def OldMagFitOrder2(theta):
-    """Copied from github.com/zacinaction ca. late Oct, 2013"""
+    """Copied from github.com/zacinaction ca. late Oct, 2013
+       N.B. this can only take a scalar theta, unlike MagFit above"""
 
     B = np.zeros(3)
 
@@ -202,8 +252,9 @@ if __name__=="__main__":
   err3 = []
   for i in range(3000):
     theta = i * math.pi / 600
-    err2 += [ [ [abs(v) for v in MagFit(theta) - OldMagFitOrder2(theta)], theta, 2] ]
-    err3 += [ [ [abs(v) for v in MagFit(theta,order=3) - OldMagFitOrder3(theta)], theta, 3] ]
+    if i==0: print( MagFit(theta,order=2) , OldMagFitOrder2(theta) )
+    err2 += [ [ [np.abs(v) for v in MagFit(theta,order=2) - OldMagFitOrder2(theta)], theta, 2] ]
+    err3 += [ [ [np.abs(v) for v in MagFit(theta,order=3) - OldMagFitOrder3(theta)], theta, 3] ]
 
   print( "Testing Magfits ..." )
   errCount = 0
@@ -215,6 +266,13 @@ if __name__=="__main__":
       errCount += 1
 
   if errCount==0: print( "  No errors > 1E-13 between old and new MagFits" )
+
+  ### Repeat for array of thetas
+  thetas = [i * math.pi for i in range(7)]
+  err2 = MagFit(thetas,2) - np.vstack( [OldMagFitOrder2(theta) for theta in thetas] )
+  err3 = MagFit(thetas,3) - np.vstack( [OldMagFitOrder3(theta) for theta in thetas] )
+  if np.max(np.abs(err2)) > 1e-13: print( 'Errors > 1e-13 (order=2):', err2 )
+  if np.max(np.abs(err3)) > 1e-13: print( 'Errors > 1e-13 (order=3):', err3 )
 
   ### Compare input and output thetas
   print( "Testing AngleSolver ..." )
