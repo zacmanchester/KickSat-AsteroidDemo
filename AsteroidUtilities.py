@@ -59,7 +59,7 @@ Argument theta may be a list, tuple or np.ndarray
 
 
 ########################################################################
-def MagFit(theta,order=2):
+def MagFit(theta,order=2,mtx=None):
   """
 Build row vector of Fourier terms per chosen order from theta,
 return row vector of dot products of that with each column of
@@ -67,7 +67,13 @@ matrix of chosen order.
 
 Argument theta may be a list, tuple or np.ndarray
 """
-  rtn = buildvec(theta,order) * mtxlist[order]
+  if mtx is None:
+    mtx = mtxlist[order]
+  else:
+    order = mtx.shape[0] >> 1
+
+  rtn = buildvec(theta,order) * mtx
+
   if np.array(theta).shape: return rtn
   return rtn.getA1()
 
@@ -142,7 +148,7 @@ Returns (Ax,Ay,Az,triangles,) tuple
 
 
 ########################################################################
-def FourierFit(filename,order=2,returnMatrixOnly=True):
+def FourierFit(filename,order=2,returnMatrixOnly=True,returnAll=False):
   """Open file, read columns:  theta (optional); Bx, By, Bz
 
      Calculate Fourier coefficients via least-squares; return matrix of
@@ -156,8 +162,8 @@ def FourierFit(filename,order=2,returnMatrixOnly=True):
     thetas = rawdata[:,0:1]
 
   elif shp[1] == 3:
-    ### assume first and last lines are theta = zero and two PI
-    thetas = math.pi * 2 * np.arange(shp[0], dtype=np.float) / shp[0]
+    ### assume first and last lines are theta = zero and ten PI
+    thetas = math.pi * 10.0 * np.arange(shp[0], dtype=np.float).reshape((-1,1,)) / (shp[0]-1)
 
   ### Build cos(nT), sin(nT) terms, .shape = (N,2*order+1)
   thetaVecs = buildvec(thetas,order=order)
@@ -168,11 +174,10 @@ def FourierFit(filename,order=2,returnMatrixOnly=True):
   ### Fit the data using least squares
   result = np.linalg.lstsq(thetaVecs, ys)
 
-  ### Return matrix, ...
-  if returnMatrixOnly: return np.matrixlib.matrix(result[0])
-
-  ### ... or full .lstsq result
-  return result
+  
+  ### Return matrix, or full .lstsq result
+  rtn = (np.matrixlib.matrix(result[0]) if returnMatrixOnly else result,)
+  return rtn + ((thetas,ys,) if returnAll else ())
 
 
 ########################################################################
