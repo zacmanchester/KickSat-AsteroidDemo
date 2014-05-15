@@ -1,0 +1,4 @@
+Windows Instructions:
+
+1. Install Launchpad Drivers: http://energia.nu/Guide_Windows.html
+2. Install Anaconda Python: http://continuum.io/downloads
